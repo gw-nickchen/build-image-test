@@ -30,7 +30,7 @@ jobs:
         id: build-image
         run: |
           echo "image-name=build-image-test-${{ inputs.environment }}:${{ needs.get-git-commit-hash.outputs.commitHash }}" >> $GITHUB_OUTPUT
-          docker build -f -t build-image-test-${{ inputs.environment }}:${{ needs.get-git-commit-hash.outputs.commitHash }} --build-arg APP_ENV=${{ inputs.environment }} .
+          docker build -t build-image-test-${{ inputs.environment }}:${{ needs.get-git-commit-hash.outputs.commitHash }} --build-arg APP_ENV=${{ inputs.environment }} .
       - name: Login to Docker registry
         uses: docker/login-action@v3
         with:
