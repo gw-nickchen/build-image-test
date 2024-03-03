@@ -1,0 +1,42 @@
+name: build image specific to environment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "environment to build image for"
+        required: true
+        type: choice
+        options:
+          - dev
+          - uat
+          - prod
+jobs:
+  get-git-commit-hash:
+    runs-on: ubuntu-latest
+    outputs:
+      commitHash: ${{ steps.get_commit_hash.outputs.commitHash }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set git commit hash
+        id: get_commit_hash
+        run: echo "commitHash=$(git log -n 1 --pretty=format:'%h' --abbrev=10)" >> $GITHUB_OUTPUT
+  build-image:
+    needs: get-git-commit-hash
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image
+        id: build-image
+        run: |
+          echo "image-name=build-image-test-${{ inputs.environment }}:${{ needs.get-git-commit-hash.outputs.commitHash }}" >> $GITHUB_OUTPUT
+          docker build -f -t build-image-test-${{ inputs.environment }}:${{ needs.get-git-commit-hash.outputs.commitHash }} --build-arg APP_ENV=${{ inputs.environment }} .
+      - name: Login to Docker registry
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      - name: Push Docker image
+        run: |
+          docker tag ${{ steps.build-image.outputs.image-name }} nickchengw/${{ steps.build-image.outputs.image-name }}
+          docker image push nickchengw/${{ steps.build-image.outputs.image-name }}
